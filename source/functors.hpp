@@ -10,6 +10,7 @@ struct b_functor
     typedef Value value_type;
 
     template< class Tuple >
+    __host__ __device__
     void operator()( Tuple t ) const
     {
         // extract the values from the tuple
@@ -51,7 +52,8 @@ struct s_functor
     { }
 
     template< class Tuple >
-    void operator()( Tuple t )
+    __host__ __device__
+    void operator()( Tuple t ) const
     {
         using std::cos;
         using std::sin;
@@ -70,13 +72,51 @@ struct s_functor
         const value_type co = cos( m_dt * thrust::get< 6 >( t ) );
         const value_type si = sin( m_dt * thrust::get< 6 >( t ) );
 
-        thrust::get< 0 >( t ) = b_x * bs + (s_x-bs) * co + (b_y*s_z - b_z*s_y) * si;
-        thrust::get< 1 >( t ) = b_y * bs + (s_y-bs) * co + (b_z*s_x - b_x*s_z) * si;
-        thrust::get< 2 >( t ) = b_z * bs + (s_z-bs) * co + (b_x*s_y - b_y*s_x) * si;        
+        thrust::get< 0 >( t ) = b_x * bs + (s_x - b_x*bs) * co + (b_y*s_z - b_z*s_y) * si;
+        thrust::get< 1 >( t ) = b_y * bs + (s_y - b_y*bs) * co + (b_z*s_x - b_x*s_z) * si;
+        thrust::get< 2 >( t ) = b_z * bs + (s_z - b_z*bs) * co + (b_x*s_y - b_y*s_x) * si;        
         
     }
 
     value_type m_dt;
+};
+
+
+template< typename ValueType >
+struct energy_functor
+{
+    typedef ValueType value_type;
+
+    template< class Tuple >
+    __host__ __device__
+    void operator()( Tuple t ) const
+    {
+        const value_type s_x = thrust::get< 0 >( t );
+        const value_type s_y = thrust::get< 1 >( t );
+        const value_type s_z = thrust::get< 2 >( t );
+        
+        const value_type b_x = thrust::get< 3 >( t );
+        const value_type b_y = thrust::get< 4 >( t );
+        const value_type b_z = thrust::get< 5 >( t );
+
+        thrust::get< 6 >( t ) *= (b_x*s_x + b_y*s_y + b_z*s_z);
+    }
+};
+
+template< typename ValueType >
+struct fourier_functor
+{
+    typedef ValueType value_type;
+    
+    template< class Tuple >
+    __host__ __device__
+    void operator()( Tuple t ) const
+    {
+
+        const value_type b_norm = thrust::get< 6 >( t );
+
+        
+    }
 };
 
 #endif
