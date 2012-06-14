@@ -10,7 +10,7 @@ struct b_functor
     typedef Value value_type;
 
     template< class Tuple >
-    __host__ __device__
+    //__host__ __device__
     void operator()( Tuple t ) const
     {
         // extract the values from the tuple
@@ -35,10 +35,14 @@ struct b_functor
         thrust::get< 9 >( t ) = sqrt( thrust::get< 6 >( t )*thrust::get< 6 >( t ) + 
                                       thrust::get< 7 >( t )*thrust::get< 7 >( t ) + 
                                       thrust::get< 8 >( t )*thrust::get< 8 >( t ) );
-        
-        thrust::get< 6 >( t ) /= thrust::get< 9 >( t );
-        thrust::get< 7 >( t ) /= thrust::get< 9 >( t );
-        thrust::get< 8 >( t ) /= thrust::get< 9 >( t );
+        if( thrust::get< 9 >( t ) > 0.0 )
+        {
+            thrust::get< 6 >( t ) /= thrust::get< 9 >( t );
+            thrust::get< 7 >( t ) /= thrust::get< 9 >( t );
+            thrust::get< 8 >( t ) /= thrust::get< 9 >( t );
+        }
+
+        //std::clog << thrust::get< 9 >( t ) << std::endl;
     }
 };
 
@@ -91,31 +95,27 @@ struct energy_functor
     __host__ __device__
     void operator()( Tuple t ) const
     {
-        const value_type s_x = thrust::get< 0 >( t );
-        const value_type s_y = thrust::get< 1 >( t );
-        const value_type s_z = thrust::get< 2 >( t );
-        
-        const value_type b_x = thrust::get< 3 >( t );
-        const value_type b_y = thrust::get< 4 >( t );
-        const value_type b_z = thrust::get< 5 >( t );
+        // extract the values from the tuple
+        const value_type s_x_l = thrust::get< 0 >( thrust::get< 0 >( t ) );
+        const value_type s_x   = thrust::get< 1 >( thrust::get< 0 >( t ) );
+        const value_type s_x_r = thrust::get< 2 >( thrust::get< 0 >( t ) );
 
-        thrust::get< 6 >( t ) *= (b_x*s_x + b_y*s_y + b_z*s_z);
-    }
-};
+        const value_type s_y_l = thrust::get< 0 >( thrust::get< 1 >( t ) );
+        const value_type s_y   = thrust::get< 1 >( thrust::get< 1 >( t ) );
+        const value_type s_y_r = thrust::get< 2 >( thrust::get< 1 >( t ) );
 
-template< typename ValueType >
-struct fourier_functor
-{
-    typedef ValueType value_type;
-    
-    template< class Tuple >
-    __host__ __device__
-    void operator()( Tuple t ) const
-    {
+        const value_type s_z_l = thrust::get< 0 >( thrust::get< 2 >( t ) );
+        const value_type s_z   = thrust::get< 1 >( thrust::get< 2 >( t ) );
+        const value_type s_z_r = thrust::get< 2 >( thrust::get< 2 >( t ) );
 
-        const value_type b_norm = thrust::get< 6 >( t );
+        const value_type h_x = thrust::get< 3 >( t );
+        const value_type h_y = thrust::get< 4 >( t );
+        const value_type h_z = thrust::get< 5 >( t );
 
-        
+        const value_type h = static_cast< value_type >( 0.5 );
+        thrust::get< 6 >( t )  = ( h_x + h*s_x_l + h*s_x_r ) * s_x;
+        thrust::get< 6 >( t ) += ( h_y + h*s_y_l + h*s_y_r ) * s_y;
+        thrust::get< 6 >( t ) += ( h_z + h*s_z_l + h*s_z_r ) * s_z;
     }
 };
 
