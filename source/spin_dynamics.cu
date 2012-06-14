@@ -21,6 +21,7 @@ static const int N = 10000;
 static const int steps = 1001;
 static const double dt = 0.1;
 static const double q = 25.0;
+static const double beta0 = 2.0;
 static const double nu = 0.5;
 
 int main()
@@ -54,7 +55,8 @@ int main()
     s_z_host[0] = 0.0; s_z_host[N+1] = 0.0;
 
     init.relax( h_x_host , h_y_host , h_z_host , 
-                s_x_host , s_y_host , s_z_host );
+                s_x_host , s_y_host , s_z_host ,
+                beta0 );
 
     std::clog << "initialization finished" << std::endl;
     

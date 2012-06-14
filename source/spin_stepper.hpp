@@ -29,27 +29,13 @@ public:
                   const double dt )
     {
         // even spins
-        // std::cout << "before: ";
-        // thrust::copy( s_x.begin(), s_x.end(), std::ostream_iterator<value_type>(std::cout, " "));  std::cout << std::endl << "        ";
-        // thrust::copy( s_y.begin(), s_y.end(), std::ostream_iterator<value_type>(std::cout, " "));  std::cout << std::endl << "        ";
-        // thrust::copy( s_z.begin(), s_z.end(), std::ostream_iterator<value_type>(std::cout, " "));  std::cout << std::endl;
-        
         compute_b( s_x , s_y , s_z , true );
         evolve_s(  s_x , s_y , s_z , dt , true );
-        
-        // std::cout << "even:   ";
-        // thrust::copy( s_x.begin(), s_x.end(), std::ostream_iterator<value_type>(std::cout, " "));  std::cout << std::endl << "        ";
-        // thrust::copy( s_y.begin(), s_y.end(), std::ostream_iterator<value_type>(std::cout, " "));  std::cout << std::endl << "        ";
-        // thrust::copy( s_z.begin(), s_z.end(), std::ostream_iterator<value_type>(std::cout, " "));  std::cout << std::endl;
+ 
         // odd spins
-        
         compute_b( s_x , s_y , s_z , false );
         evolve_s(  s_x , s_y , s_z , dt , false );
  
-        // std::cout << "odd:    ";
-        // thrust::copy( s_x.begin(), s_x.end(), std::ostream_iterator<value_type>(std::cout, " "));  std::cout << std::endl << "        ";
-        // thrust::copy( s_y.begin(), s_y.end(), std::ostream_iterator<value_type>(std::cout, " "));  std::cout << std::endl << "        ";
-        // thrust::copy( s_z.begin(), s_z.end(), std::ostream_iterator<value_type>(std::cout, " "));  std::cout << std::endl;
     }
 
 

@@ -19,9 +19,9 @@ public:
     {
         for( int n=0 ; n<x.size() ; ++n )
         {
-            x[n] = m_uniform_dist( m_rng ) - 0.5;
-            y[n] = m_uniform_dist( m_rng ) - 0.5;
-            z[n] = m_uniform_dist( m_rng ) - 0.5;
+            x[n] = m_uniform_dist( m_rng );// - 0.5;
+            y[n] = m_uniform_dist( m_rng );// - 0.5;
+            z[n] = m_uniform_dist( m_rng );// - 0.5;
             value_type nrm = sqrt( x[n]*x[n] + y[n]*y[n] + z[n]*z[n] );
             x[n] /= nrm;
             y[n] /= nrm;
@@ -31,7 +31,8 @@ public:
 
     template< class VectorType >
     void relax( const VectorType &h_x , const VectorType &h_y , const VectorType &h_z ,
-                VectorType &s_x , VectorType &s_y , VectorType &s_z )
+                VectorType &s_x , VectorType &s_y , VectorType &s_z ,
+                const double beta0 )
     {
         const int N = h_x.size();
         // relax every second spin:
@@ -43,38 +44,23 @@ public:
             value_type b_z = h_z[n] + s_z[n] + s_z[n+2];
             const value_type b = sqrt( b_x*b_x + b_y*b_y + b_z*b_z );
             b_x /= b; b_y /= b; b_z /= b;
-            const value_type beta = b + m_nu*cos( (n*m_q) / N );
-            std::clog << n << ": " << b << " * " << beta << " ... ";
             
-            boost::exponential_distribution< value_type > exp_dist( std::abs(beta) );
+            /* *******************
+               TO BE FIXED
+               ******************* */
+
+            const value_type beta = beta0 + m_nu*cos( (n*m_q) / N );
+            
+            // what exactly should be lambda for the exp distr
+            boost::exponential_distribution< value_type > exp_dist( b*beta );
             boost::variate_generator< boost::mt19937 & ,
                                       boost::exponential_distribution< value_type > > var_exp( m_rng , exp_dist );
             value_type cos_theta = var_exp( );
 
-            /* find a vector on the orthogonal plane to b */
-            
-            value_type x = m_uniform_dist( m_rng ) - 0.5;
-            value_type y = m_uniform_dist( m_rng ) - 0.5;
-            value_type z = m_uniform_dist( m_rng ) - 0.5;
-     
-            /* ensure orthogonality by enforcing the scalar product to zero */
-            if( b_x != 0.0 )
-                x = -(y*b_y + z*b_z) / b_x;
-            else if( b_y != 0.0 )
-                y = -(x*b_x + z*b_z) / b_y;
-            else
-                z = -(x*b_x + y*b_y) / b_z;
-
-            const value_type nrm = sqrt( x*x + y*y + z*z );
-            std::clog << nrm << " ... ";
-            x /= nrm; y /= nrm; z /= nrm;
-
-            /* calculate s[n] using cos_theta = b cdot s */
-            s_x[n+1] = cos_theta*b_x + x;
-            s_y[n+1] = cos_theta*b_y + y;
-            s_z[n+1] = cos_theta*b_z + z;
-
-            std::clog << s_x[n+1] << std::endl;
+            // how to get a vector not perpendicular to b ?
+            s_x[n+1] = cos_theta*b_x;
+            s_y[n+1] = cos_theta*b_y;
+            s_z[n+1] = cos_theta*b_z;
         }
     }
 
