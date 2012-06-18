@@ -44,7 +44,7 @@ public:
                                                        energy.end() , 
                                                        m_si.begin() , 
                                                        0.0 );
-        return sqrt(real*real + imag*imag);
+        return real*real + imag*imag;
     }
 
 private:
