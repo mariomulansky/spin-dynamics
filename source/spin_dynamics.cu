@@ -1,5 +1,7 @@
 #include <iostream>
 #include <fstream>
+#include <sys/time.h>
+
 #include <boost/random.hpp>
 
 #include <thrust/device_vector.h>
@@ -17,15 +19,28 @@ typedef thrust::device_vector< value_type > device_type;
 
 typedef std::vector< value_type > host_type;
 
-static const int N = 10000;
-static const int steps = 2001;
+int N = 100000;
+static const int steps = 5001;
 static const double dt = 0.1;
-static const double q = 2.0*3.1415 * 500.0;
+double q = 2.0*3.1415 * N/40;
 static const double beta0 = 0.0001;
-static const double nu = 1.0;
+static const double nu = 0.5;
 
-int main()
+double time_diff_in_ms( timeval &t1 , timeval &t2 )
+{ return (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0 + 0.5; }
+
+int main( int argc , char** argv )
 {
+
+    if( argc>1 )
+    {
+        N = atoi( argv[1] );
+        q = 2.0*3.1415 * N/40;
+    }
+
+    std::clog << "System size: " << N << ", q: " << q << std::endl;
+
+
     boost::mt19937 rng;
 
     /* define initial conditions */
@@ -84,7 +99,14 @@ int main()
                   std::ostream_iterator<value_type>( en_file , "\n"));
     en_file.close();
 
-    std::ofstream res_file( "result.dat" );
+    char filename[255];
+    sprintf( filename , "resultN%d.dat" , N );
+    std::ofstream res_file( filename );
+
+    std::clog << "Starting time evolution..." << std::endl;
+
+    timeval elapsed_time_start , elapsed_time_end;
+    gettimeofday(&elapsed_time_start , NULL);
     
     for( int n=0 ; n<steps ; ++n )
     {
@@ -95,12 +117,15 @@ int main()
             res_file << n*dt << '\t';
             stepper.energies( s_x , s_y , s_z , energies );
             res_file << thrust::reduce( energies.begin() , energies.end() ) << '\t';
-            res_file << fourier.analyze( energies ) << std::endl;
+            res_file << fourier.analyze( energies )/N << std::endl;
         }
         
     }
 
-    std::clog << "Finished " << steps << " steps" << std::endl;
+    gettimeofday(&elapsed_time_end , NULL);
+    double elapsed_time = 0.001 * time_diff_in_ms( elapsed_time_start , elapsed_time_end );
+
+    std::clog << "Finished " << steps << " steps for N=" << N << " in " << elapsed_time << " seconds" << std::endl;
     
     en_file.open( "enT.dat" );
     thrust::copy( energies.begin(), energies.end(), 
