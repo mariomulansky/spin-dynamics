@@ -19,3 +19,7 @@ NVCCFLAGS = -O3 $(INCLUDES) -arch $(ARCH)  -Xcompiler -fopenmp -DTHRUST_DEVICE_B
 spin_dynamics.co: spin_dynamics.cu
 spin_dynamics: spin_dynamics.co
 	$(CC) -o spin_dynamics $(LDLIBS) $(LDFLAGS) spin_dynamics.co
+
+short_time.co: short_time.cu
+short_time: short_time.co
+	$(CC) -o short_time $(LDLIBS) $(LDFLAGS) short_time.co
