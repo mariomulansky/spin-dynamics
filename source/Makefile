@@ -8,6 +8,7 @@ NVCC = nvcc
 
 LDLIBS = -lcudart -lgomp
 LDFLAGS = -L$(CUDA_ROOT)/lib64
+INCLUDES = -I${BOOST_ROOT}
 
 NVCCFLAGS = -O3 $(INCLUDES) -arch $(ARCH)  -Xcompiler -fopenmp -DTHRUST_DEVICE_BACKEND=THRUST_DEVICE_BACKEND_OMP
 #--compiler-bindir=/usr/bin/g++-4.4

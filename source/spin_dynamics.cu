@@ -1,14 +1,11 @@
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
+#include <cmath>
+
 #include <sys/time.h>
 
-#include <boost/random.hpp>
-
 #include <thrust/device_vector.h>
-
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_real.hpp>
-#include <boost/random/variate_generator.hpp>
 
 #include "spin_stepper.hpp"
 #include "fourier_analyzer.hpp"
@@ -22,7 +19,7 @@ typedef std::vector< value_type > host_type;
 int N = 100000;
 static const int steps = 5001;
 static const double dt = 0.1;
-double q = 2.0*3.1415 * N/40;
+double q = 2.0*M_PI * N/40;
 static const double beta0 = 0.0001;
 static const double nu = 0.5;
 
@@ -35,13 +32,11 @@ int main( int argc , char** argv )
     if( argc>1 )
     {
         N = atoi( argv[1] );
-        q = 2.0*3.1415 * N/40;
+        q = 2.0*M_PI * N/40;
     }
 
     std::clog << "System size: " << N << ", q: " << q << std::endl;
 
-
-    boost::mt19937 rng;
 
     /* define initial conditions */
     host_type s_x_host( N+2 , 0.0 );
@@ -59,7 +54,7 @@ int main( int argc , char** argv )
     s_x_host[ N/2+2 ] = 1.0;
     */
 
-    spin_initializer< value_type > init( q , nu , rng );
+    spin_initializer< value_type > init( q , nu );
 
     init.init_normalized_random( h_x_host , h_y_host , h_z_host );
     init.init_normalized_random( s_x_host , s_y_host , s_z_host );

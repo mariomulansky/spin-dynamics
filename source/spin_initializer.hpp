@@ -2,11 +2,11 @@
 #define SPIN_INITIALIZER_HPP
 
 #include <cmath>
+#include <cstdlib>
 
-#include <boost/random.hpp>
-#include <boost/math/constants/constants.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
+
 
 template< typename ValueType >
 class spin_initializer
@@ -14,8 +14,8 @@ class spin_initializer
 public:
     typedef ValueType value_type;
 
-    spin_initializer( value_type q , value_type nu , boost::mt19937 &rng )
-        : m_q( q ) , m_nu( nu ) , m_rng( rng )
+    spin_initializer( value_type q , value_type nu )
+        : m_q( q ) , m_nu( nu )
     {  }
 
     template< class VectorType >
@@ -23,9 +23,10 @@ public:
     {
         for( int n=0 ; n<x.size() ; ++n )
         {
-            x[n] = m_uniform_dist( m_rng ) - 0.5;
-            y[n] = m_uniform_dist( m_rng ) - 0.5;
-            z[n] = m_uniform_dist( m_rng ) - 0.5;
+            x[n] = static_cast< value_type >( rand() ) / RAND_MAX - 0.5; 
+            //m_uniform_dist( m_rng ) - 0.5;
+            y[n] = static_cast< value_type >( rand() ) / RAND_MAX - 0.5;
+            z[n] = static_cast< value_type >( rand() ) / RAND_MAX - 0.5;
             value_type nrm = sqrt( x[n]*x[n] + y[n]*y[n] + z[n]*z[n] );
             x[n] /= nrm;
             y[n] /= nrm;
@@ -61,10 +62,10 @@ public:
 
             const value_type beta = beta0 + m_nu*cos( (n*m_q) / N );
             
-            value_type R = m_uniform_dist( m_rng );
+            value_type R = static_cast< value_type >( rand() ) / RAND_MAX;
             
             value_type cos_theta = 1.0/(b*beta) * log( (1.0-R)*exp(b*beta) + R*exp(-b*beta) );
-            value_type phi = 2.0 * boost::math::constants::pi<value_type>() * m_uniform_dist( m_rng );
+            value_type phi = 2.0 * M_PI * static_cast< value_type >( rand() ) / RAND_MAX ;
             
             bfile << n << '\t' << beta << '\t' << cos_theta << std::endl;
 
@@ -127,8 +128,6 @@ public:
 private:
     const value_type m_q;
     const value_type m_nu;
-    boost::mt19937 &m_rng;
-    boost::uniform_01< value_type > m_uniform_dist;
 };
 
 #endif
