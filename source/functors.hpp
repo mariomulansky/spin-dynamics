@@ -1,7 +1,7 @@
 #ifndef FUNCTORS_HPP
 #define FUNCTORS_HPP
 
-#include <cmath>
+#include <math.h>
 
 
 template< typename Value >
@@ -10,7 +10,7 @@ struct b_functor
     typedef Value value_type;
 
     template< class Tuple >
-    //__host__ __device__
+    __host__ __device__
     void operator()( Tuple t ) const
     {
         // extract the values from the tuple
@@ -59,8 +59,8 @@ struct s_functor
     __host__ __device__
     void operator()( Tuple t ) const
     {
-        using std::cos;
-        using std::sin;
+        //using std::cos;
+        //using std::sin;
         // extract values
 
         const value_type s_x = thrust::get< 0 >( t );

@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <vector>
-#include <cmath>
+#include <math.h>
 
 #include <thrust/inner_product.h>
 
@@ -22,8 +22,8 @@ public:
         std::vector< value_type > si( N );
         for( int n=0 ; n<N ; ++n )
         {
-            using std::cos;
-            using std::sin;
+            //using std::cos;
+            //using std::sin;
 
             co[n] = cos( (q*n) / N );
             si[n] = sin( (q*n) / N );

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
-#include <cmath>
+#include <math.h>
 
 #include <sys/time.h>
 
@@ -16,12 +16,12 @@ typedef thrust::device_vector< value_type > device_type;
 
 typedef std::vector< value_type > host_type;
 
-int N = 100000;
+int N = 1000000;
 static const int steps = 5001;
-static const double dt = 0.1;
-double q = 2.0*M_PI * N/40;
-static const double beta0 = 0.0001;
-static const double nu = 0.5;
+static const value_type dt = 0.1;
+value_type q = 2.0*M_PI * N/40;
+static const value_type beta0 = 0.0001;
+static const value_type nu = 0.5;
 
 double time_diff_in_ms( timeval &t1 , timeval &t2 )
 { return (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0 + 0.5; }
