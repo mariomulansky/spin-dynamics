@@ -16,7 +16,7 @@ typedef thrust::device_vector< value_type > device_type;
 
 typedef std::vector< value_type > host_type;
 
-static const int N = 100000000;
+static const int N = 10000000;
 static const int steps = 50001;
 static const double dt = 0.1;
 double q = 2.0*M_PI * N/40;
@@ -88,15 +88,22 @@ int main( int argc , char** argv )
         stepper.energies( s_x , s_y , s_z , energies );
     
         char filename[255];
-        sprintf( filename , "data_N%d/fourier_q%.5f.dat" , q/N );
+        sprintf( filename , "../data_N%d_dt%.2f/fourier_q%.5f.dat" , N , dt , q/N );
         std::ofstream res_file( filename );
+	if( !res_file.good() )
+	{
+	    std::cout << "unable to open file: " << filename << std::endl;
+	    exit(-1);
+	}
 
         std::clog << "Starting time evolution..." << std::endl;
 
         timeval elapsed_time_start , elapsed_time_end;
         gettimeofday(&elapsed_time_start , NULL);
+	
+	int n;
     
-        for( int n=0 ; n<steps ; ++n )
+        for( n=0 ; n<steps ; ++n )
         {
             stepper.do_step( s_x , s_y , s_z , dt );
         
@@ -105,7 +112,10 @@ int main( int argc , char** argv )
                 res_file << n*dt << '\t';
                 stepper.energies( s_x , s_y , s_z , energies );
                 res_file << thrust::reduce( energies.begin() , energies.end() ) << '\t';
-                res_file << fourier.analyze( energies )/N << std::endl;
+		const double fq = fourier.analyze( energies )/N;
+                res_file << fq << std::endl;
+		if( fq < 1.0 ) 
+		    break;
             }
         
         }
@@ -113,7 +123,7 @@ int main( int argc , char** argv )
         gettimeofday(&elapsed_time_end , NULL);
         double elapsed_time = 0.001 * time_diff_in_ms( elapsed_time_start , elapsed_time_end );
 
-        std::clog << "Finished " << steps << " steps for N=" << N << " in " << elapsed_time << " seconds" << std::endl;
+        std::clog << "Finished " << n+1 << " steps for N=" << N << " in " << elapsed_time << " seconds" << std::endl;
 
     }
 }
