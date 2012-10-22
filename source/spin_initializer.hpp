@@ -56,10 +56,6 @@ public:
             const value_type b = sqrt( b_x*b_x + b_y*b_y + b_z*b_z );
             b_x /= b; b_y /= b; b_z /= b;
             
-            /* *******************
-               TO BE FIXED
-               ******************* */
-
             const value_type beta = beta0 + m_nu*cos( (n*m_q) / N );
             
             value_type R = static_cast< value_type >( rand() ) / RAND_MAX;
