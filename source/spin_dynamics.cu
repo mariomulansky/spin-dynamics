@@ -18,7 +18,8 @@ typedef thrust::device_vector< value_type > device_type;
 
 typedef std::vector< value_type > host_type;
 
-int N = 1000000;
+int N = 1024*1024;
+int cuda_block_size = 128;
 static const int steps = 5001;
 static const value_type dt = 0.1;
 value_type q = 2.0*M_PI * N/40;
@@ -33,11 +34,17 @@ int main( int argc , char** argv )
 
     if( argc>1 )
     {
-        N = atoi( argv[1] );
-        q = 2.0*M_PI * N/40;
+        cuda_block_size = atoi( argv[1] );
+    }
+    if( argc>2 )
+    {
+        N = atoi( argv[2] );
     }
 
-    std::clog << "System size: " << N << ", q: " << q << std::endl;
+
+    q = 2.0*M_PI * N/40;
+
+    std::clog << "System size: " << N << ", q: " << q << ", cuda BLOCK_SIZE: " << cuda_block_size << std::endl;
 
 
     /* define initial conditions */
@@ -76,12 +83,9 @@ int main( int argc , char** argv )
     std::clog << "copy to device..." << std::endl;
     
     // vectors s_*_host have length N+2 to account for boundary conditions
-    device_type s_x1( s_x_host.begin() , s_x_host.end() );
-    device_type s_y1( s_y_host.begin() , s_y_host.end() );
-    device_type s_z1( s_z_host.begin() , s_z_host.end() );
-    device_type s_x2( s_x_host.begin() , s_x_host.end() );
-    device_type s_y2( s_y_host.begin() , s_y_host.end() );
-device_type s_z2( s_z_host.begin() , s_z_host.end() );
+    device_type s_x( s_x_host.begin() , s_x_host.end() );
+    device_type s_y( s_y_host.begin() , s_y_host.end() );
+    device_type s_z( s_z_host.begin() , s_z_host.end() );
     
     device_type h_x( h_x_host.begin() , h_x_host.end() );
     device_type h_y( h_y_host.begin() , h_y_host.end() );
@@ -89,7 +93,8 @@ device_type s_z2( s_z_host.begin() , s_z_host.end() );
     
     device_type energies( N );
     
-    spin_stepper< device_type , value_type > stepper( N , h_x , h_y , h_z );
+    //spin_stepper< device_type , value_type > stepper( N , h_x , h_y , h_z );
+    spin_stepper_cuda< device_type , value_type > stepper( N , h_x , h_y , h_z , cuda_block_size );
     fourier_analyzer< device_type , value_type > fourier( N , q );
     
     stepper.energies( s_x , s_y , s_z , energies );

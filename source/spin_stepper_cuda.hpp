@@ -3,7 +3,7 @@
 
 #include <thrust/device_vector.h>
 
-__global__ void timestep_kernel( double* s_x , double* s_y , double* s_z , double* h_x , double* h_y , double* h_z , double dt )
+__global__ void timestep_kernel_full( double* s_x , double* s_y , double* s_z , double* h_x , double* h_y , double* h_z , double dt )
 {
     const int i_even = 2*threadIdx.x;
     const int i_odd = 2*threadIdx.x+1;
@@ -14,8 +14,8 @@ __global__ void timestep_kernel( double* s_x , double* s_y , double* s_z , doubl
 
     // start with calculating local b field
     b_x = h_x[i_even] + s_x[i_even-1] + s_x[i_even+1];
-    b_y = h_y[i_even] + s_y[i_even-1] + s_z[i_even+1];
-    b_z = h_z[i_even] + s_y[i_even-1] + s_z[i_even+1];
+    b_y = h_y[i_even] + s_y[i_even-1] + s_y[i_even+1];
+    b_z = h_z[i_even] + s_z[i_even-1] + s_z[i_even+1];
     b_norm = sqrt(b_x*b_x + b_y*b_y + b_z*b_z);
     b_x /= b_norm;
     b_y /= b_norm;
@@ -26,9 +26,13 @@ __global__ void timestep_kernel( double* s_x , double* s_y , double* s_z , doubl
     co = cos( dt*b_norm );
     si = sin( dt*b_norm );
 
-    s_x[i_even] = b_x * bs + (s_x[i_even] - b_x*bs) * co + (b_y*s_z[i_even] - b_z*s_y[i_even]) * si;
-    s_y[i_even] = b_y * bs + (s_y[i_even] - b_y*bs) * co + (b_z*s_x[i_even] - b_x*s_z[i_even]) * si;
-    s_z[i_even] = b_z * bs + (s_z[i_even] - b_z*bs) * co + (b_x*s_y[i_even] - b_y*s_x[i_even]) * si;
+    double x = s_x[i_even];
+    double y = s_y[i_even];
+    double z = s_z[i_even];
+
+    s_x[i_even] = b_x * bs + (x - b_x*bs) * co + (b_y*z - b_z*y) * si;
+    s_y[i_even] = b_y * bs + (y - b_y*bs) * co + (b_z*x - b_x*z) * si;
+    s_z[i_even] = b_z * bs + (z - b_z*bs) * co + (b_x*y - b_y*x) * si;
 
     __syncthreads(); // make sure all even spins are updated
 
@@ -36,24 +40,58 @@ __global__ void timestep_kernel( double* s_x , double* s_y , double* s_z , doubl
 
     // start with calculating local b field
     b_x = h_x[i_odd] + s_x[i_odd-1] + s_x[i_odd+1];
-    b_y = h_y[i_odd] + s_y[i_odd-1] + s_z[i_odd+1];
-    b_z = h_z[i_odd] + s_y[i_odd-1] + s_z[i_odd+1];
+    b_y = h_y[i_odd] + s_y[i_odd-1] + s_y[i_odd+1];
+    b_z = h_z[i_odd] + s_z[i_odd-1] + s_z[i_odd+1];
     b_norm = sqrt(b_x*b_x + b_y*b_y + b_z*b_z);
-    b_x/=b_norm;
-    b_y/=b_norm;
-    b_z/=b_norm;
+    b_x /= b_norm;
+    b_y /= b_norm;
+    b_z /= b_norm;
 
     // do spin rotation
     bs = s_x[i_odd]*b_x + s_y[i_odd]*b_y + s_z[i_odd]*b_z;
     co = cos( dt*b_norm );
     si = sin( dt*b_norm );
 
-    s_x[i_odd] = b_x * bs + (s_x[i_odd] - b_x*bs) * co + (b_y*s_z[i_odd] - b_z*s_y[i_odd]) * si;
-    s_y[i_odd] = b_y * bs + (s_y[i_odd] - b_y*bs) * co + (b_z*s_x[i_odd] - b_x*s_z[i_odd]) * si;
-    s_z[i_odd] = b_z * bs + (s_z[i_odd] - b_z*bs) * co + (b_x*s_y[i_odd] - b_y*s_x[i_odd]) * si;
+    x = s_x[i_odd];
+    y = s_y[i_odd];
+    z = s_z[i_odd];
+
+    s_x[i_odd] = b_x * bs + (x - b_x*bs) * co + (b_y*z - b_z*y) * si;
+    s_y[i_odd] = b_y * bs + (y - b_y*bs) * co + (b_z*x - b_x*z) * si;
+    s_z[i_odd] = b_z * bs + (z - b_z*bs) * co + (b_x*y - b_y*x) * si;
 
     // finished
 }
+
+__global__ void timestep_kernel_half( double* s_x , double* s_y , double* s_z , double* h_x , double* h_y , double* h_z , double dt )
+{
+    const int i = 2*(threadIdx.x + blockIdx.x * blockDim.x);
+
+    // start with calculating local b field
+    double b_x = h_x[i] + s_x[i-1] + s_x[i+1];
+    double b_y = h_y[i] + s_y[i-1] + s_y[i+1];
+    double b_z = h_z[i] + s_z[i-1] + s_z[i+1];
+    const double b_norm = sqrt(b_x*b_x + b_y*b_y + b_z*b_z);
+    b_x /= b_norm;
+    b_y /= b_norm;
+    b_z /= b_norm;
+
+    // do spin rotation
+    const double bs = s_x[i]*b_x + s_y[i]*b_y + s_z[i]*b_z;
+    const double co = cos( dt*b_norm );
+    const double si = sin( dt*b_norm );
+
+    const double x = s_x[i];
+    const double y = s_y[i];
+    const double z = s_z[i];
+
+    s_x[i] = b_x * bs + (x - b_x*bs) * co + (b_y*z - b_z*y) * si;
+    s_y[i] = b_y * bs + (y - b_y*bs) * co + (b_z*x - b_x*z) * si;
+    s_z[i] = b_z * bs + (z - b_z*bs) * co + (b_x*y - b_y*x) * si;
+
+    // finished
+}
+
 
 template< class VectorType , class ValueType >
 class spin_stepper_cuda
@@ -68,8 +106,9 @@ public:
     spin_stepper_cuda( int N , 
                        vector_type &h_x , 
                        vector_type &h_y , 
-                       vector_type &h_z  )
-        : m_N( N ) , m_h_x( h_x ) , m_h_y( h_y ) , m_h_z( h_z )
+                       vector_type &h_z ,
+                       int block_size )
+        : m_N( N ) , m_h_x( h_x ) , m_h_y( h_y ) , m_h_z( h_z ) , m_block_size( block_size )
     { }
 
 
@@ -85,7 +124,20 @@ public:
         value_type *h_y_ptr = thrust::raw_pointer_cast(m_h_y.data());
         value_type *h_z_ptr = thrust::raw_pointer_cast(m_h_z.data());
 
-        timestep_kernel<<<1,m_N/2>>>( s_x_ptr , s_y_ptr , s_z_ptr , h_x_ptr , h_y_ptr , h_z_ptr , dt );
+        //timestep_kernel<<<1,m_N/2>>>( s_x_ptr , s_y_ptr , s_z_ptr , h_x_ptr , h_y_ptr , h_z_ptr , dt );
+        // even spins
+        timestep_kernel_half<<< (m_N/2)/m_block_size , m_block_size >>>
+            ( s_x_ptr , s_y_ptr , s_z_ptr , h_x_ptr , h_y_ptr , h_z_ptr , dt );
+        // odd spins
+        timestep_kernel_half<<< (m_N/2)/m_block_size , m_block_size >>>
+            ( s_x_ptr+1 , s_y_ptr+1 , s_z_ptr+1 , h_x_ptr+1 , h_y_ptr+1 , h_z_ptr+1 , dt );
+
+        cudaError_t err = cudaGetLastError();
+        
+        if( err != cudaSuccess )
+        {
+            std::cout << "CUDA Error: " << cudaGetErrorString( err ) << std::endl;
+        }
     }
 
 
@@ -135,6 +187,7 @@ public:
     vector_type &m_h_x;
     vector_type &m_h_y;
     vector_type &m_h_z; 
+    int m_block_size;
 };
 
 #endif

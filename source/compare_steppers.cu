@@ -10,6 +10,7 @@
 #include "spin_stepper.hpp"
 #include "spin_stepper_cuda.hpp"
 #include "fourier_analyzer.hpp"
+#include "fourier_analyzer_cuda.hpp"
 #include "spin_initializer.hpp"
 
 typedef double value_type;
@@ -18,7 +19,7 @@ typedef thrust::device_vector< value_type > device_type;
 typedef std::vector< value_type > host_type;
 
 int N = 1000000;
-static const int steps = 5001;
+static const int steps = 10;
 static const value_type dt = 0.1;
 value_type q = 2.0*M_PI * N/40;
 static const value_type beta0 = 0.0001;
@@ -88,10 +89,12 @@ int main( int argc , char** argv )
     device_type h_z( h_z_host.begin() , h_z_host.end() );
     
     device_type energies( N );
+    device_type energies2( N );
     
     spin_stepper< device_type , value_type > stepper( N , h_x , h_y , h_z );
-    spin_stepper_cuda< device_type , value_type > stepper_cuda( N , h_x , h_y , h_z );
+spin_stepper_cuda< device_type , value_type > stepper_cuda( N , h_x , h_y , h_z , 4 );
     fourier_analyzer< device_type , value_type > fourier( N , q );
+    fourier_analyzer_cuda< device_type , value_type > fourier_cuda( N , q , h_x , h_y , h_z , 4 );
     
     stepper.energies( s_x1 , s_y1 , s_z1 , energies );
     
@@ -111,24 +114,27 @@ int main( int argc , char** argv )
     timeval elapsed_time_start , elapsed_time_end;
     gettimeofday(&elapsed_time_start , NULL);
     
+    host_type s1( N+2 );
+    host_type s2( N+2 );
+    
     for( int n=0 ; n<steps ; ++n )
     {
-        if( (n%10) == 0 )
-        {
-            res_file1 << n*dt << '\t';
-            stepper.energies( s_x1 , s_y1 , s_z1 , energies );
-            res_file1 << thrust::reduce( energies.begin() , energies.end() ) << '\t';
-            res_file1 << fourier.analyze( energies )/N << std::endl;
+        thrust::copy( s_x1.begin() , s_x1.end() , s1.begin() );
+        thrust::copy( s_x2.begin() , s_x2.end() , s2.begin() );
+        for( int n=0 ; n<N+2 ; n++ )
+            std::cout << s1[n] << '\t' << s2[n] << std::endl;
 
-            res_file2 << n*dt << '\t';
-            stepper_cuda.energies( s_x2 , s_y2 , s_z2 , energies );
-            res_file2 << thrust::reduce( energies.begin() , energies.end() ) << '\t';
-            res_file2 << fourier.analyze( energies )/N << std::endl;
-        }
+        stepper.energies( s_x1 , s_y1 , s_z1 , energies );
+        std::cout << "energies: " <<  thrust::reduce( energies.begin() , energies.end() );
+
+        stepper_cuda.energies( s_x2 , s_y2 , s_z2 , energies2 );
+        std::cout << '\t' <<  thrust::reduce( energies2.begin() , energies2.end() ) << std::endl;
+
+        std::cout << "fourier: " << fourier.analyze( energies );
+        std::cout << '\t' << fourier_cuda.analyze( s_x2 , s_y2 , s_z2 ) << std::endl;
 
         stepper.do_step( s_x1 , s_y1 , s_z1 , dt );
         stepper_cuda.do_step( s_x2 , s_y2 , s_z2 , dt );
-        
     }
 
     gettimeofday(&elapsed_time_end , NULL);

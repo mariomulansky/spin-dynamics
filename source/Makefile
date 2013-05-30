@@ -1,4 +1,4 @@
-ARCH = sm_13
+ARCH = sm_20
 
 CUDA_ROOT = /usr/local/cuda
 
