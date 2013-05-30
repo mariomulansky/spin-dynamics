@@ -76,10 +76,10 @@ public:
     void do_step( vector_type &s_x , vector_type &s_y , vector_type &s_z ,
                   const double dt )
     {
-        // elements 0 and N+1 are for constant boundary condition, start with [1]
-        value_type *s_x_ptr = thrust::raw_pointer_cast(&s_x[1]);
-        value_type *s_y_ptr = thrust::raw_pointer_cast(&s_y[1]);
-        value_type *s_z_ptr = thrust::raw_pointer_cast(&s_z[1]);
+        // elements 0 and N+1 are for constant boundary condition
+        value_type *s_x_ptr = thrust::raw_pointer_cast(s_x.data()+1);
+        value_type *s_y_ptr = thrust::raw_pointer_cast(s_y.data()+1);
+        value_type *s_z_ptr = thrust::raw_pointer_cast(s_z.data()+1);
 
         value_type *h_x_ptr = thrust::raw_pointer_cast(m_h_x.data());
         value_type *h_y_ptr = thrust::raw_pointer_cast(m_h_y.data());

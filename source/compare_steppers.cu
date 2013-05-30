@@ -78,6 +78,7 @@ int main( int argc , char** argv )
     device_type s_x1( s_x_host.begin() , s_x_host.end() );
     device_type s_y1( s_y_host.begin() , s_y_host.end() );
     device_type s_z1( s_z_host.begin() , s_z_host.end() );
+
     device_type s_x2( s_x_host.begin() , s_x_host.end() );
     device_type s_y2( s_y_host.begin() , s_y_host.end() );
     device_type s_z2( s_z_host.begin() , s_z_host.end() );
@@ -112,9 +113,6 @@ int main( int argc , char** argv )
     
     for( int n=0 ; n<steps ; ++n )
     {
-        stepper.do_step( s_x1 , s_y1 , s_z1 , dt );
-        stepper_cuda.do_step( s_x2 , s_y2 , s_z2 , dt );
-        
         if( (n%10) == 0 )
         {
             res_file1 << n*dt << '\t';
@@ -127,6 +125,9 @@ int main( int argc , char** argv )
             res_file2 << thrust::reduce( energies.begin() , energies.end() ) << '\t';
             res_file2 << fourier.analyze( energies )/N << std::endl;
         }
+
+        stepper.do_step( s_x1 , s_y1 , s_z1 , dt );
+        stepper_cuda.do_step( s_x2 , s_y2 , s_z2 , dt );
         
     }
 
