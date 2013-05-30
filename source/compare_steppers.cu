@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -81,7 +80,7 @@ int main( int argc , char** argv )
     device_type s_z1( s_z_host.begin() , s_z_host.end() );
     device_type s_x2( s_x_host.begin() , s_x_host.end() );
     device_type s_y2( s_y_host.begin() , s_y_host.end() );
-device_type s_z2( s_z_host.begin() , s_z_host.end() );
+    device_type s_z2( s_z_host.begin() , s_z_host.end() );
     
     device_type h_x( h_x_host.begin() , h_x_host.end() );
     device_type h_y( h_y_host.begin() , h_y_host.end() );
@@ -90,9 +89,10 @@ device_type s_z2( s_z_host.begin() , s_z_host.end() );
     device_type energies( N );
     
     spin_stepper< device_type , value_type > stepper( N , h_x , h_y , h_z );
+    spin_stepper_cuda< device_type , value_type > stepper_cuda( N , h_x , h_y , h_z );
     fourier_analyzer< device_type , value_type > fourier( N , q );
     
-    stepper.energies( s_x , s_y , s_z , energies );
+    stepper.energies( s_x1 , s_y1 , s_z1 , energies );
     
     std::ofstream en_file( "en0.dat" );
     thrust::copy( energies.begin(), energies.end(), 
@@ -100,8 +100,10 @@ device_type s_z2( s_z_host.begin() , s_z_host.end() );
     en_file.close();
 
     char filename[255];
-    sprintf( filename , "resultN%d.dat" , N );
-    std::ofstream res_file( filename );
+    sprintf( filename , "result1_N%d.dat" , N );
+    std::ofstream res_file1( filename );
+    sprintf( filename , "result2_N%d.dat" , N );
+    std::ofstream res_file2( filename );
 
     std::clog << "Starting time evolution..." << std::endl;
 
@@ -110,14 +112,20 @@ device_type s_z2( s_z_host.begin() , s_z_host.end() );
     
     for( int n=0 ; n<steps ; ++n )
     {
-        stepper.do_step( s_x , s_y , s_z , dt );
+        stepper.do_step( s_x1 , s_y1 , s_z1 , dt );
+        stepper_cuda.do_step( s_x2 , s_y2 , s_z2 , dt );
         
         if( (n%10) == 0 )
         {
-            res_file << n*dt << '\t';
-            stepper.energies( s_x , s_y , s_z , energies );
-            res_file << thrust::reduce( energies.begin() , energies.end() ) << '\t';
-            res_file << fourier.analyze( energies )/N << std::endl;
+            res_file1 << n*dt << '\t';
+            stepper.energies( s_x1 , s_y1 , s_z1 , energies );
+            res_file1 << thrust::reduce( energies.begin() , energies.end() ) << '\t';
+            res_file1 << fourier.analyze( energies )/N << std::endl;
+
+            res_file2 << n*dt << '\t';
+            stepper_cuda.energies( s_x2 , s_y2 , s_z2 , energies );
+            res_file2 << thrust::reduce( energies.begin() , energies.end() ) << '\t';
+            res_file2 << fourier.analyze( energies )/N << std::endl;
         }
         
     }

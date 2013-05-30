@@ -15,9 +15,11 @@ class spin_initializer
 public:
     typedef ValueType value_type;
 
-    spin_initializer( value_type q , value_type nu )
+    spin_initializer( value_type q , value_type nu , int seed = 0 )
         : m_q( q ) , m_nu( nu )
-    {  }
+    {  
+        srand( seed );
+    }
 
     template< class VectorType >
     void init_normalized_random( VectorType &x , VectorType &y , VectorType &z )

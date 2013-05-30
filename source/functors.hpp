@@ -78,8 +78,7 @@ struct s_functor
 
         thrust::get< 0 >( t ) = b_x * bs + (s_x - b_x*bs) * co + (b_y*s_z - b_z*s_y) * si;
         thrust::get< 1 >( t ) = b_y * bs + (s_y - b_y*bs) * co + (b_z*s_x - b_x*s_z) * si;
-        thrust::get< 2 >( t ) = b_z * bs + (s_z - b_z*bs) * co + (b_x*s_y - b_y*s_x) * si;        
-        
+        thrust::get< 2 >( t ) = b_z * bs + (s_z - b_z*bs) * co + (b_x*s_y - b_y*s_x) * si;
     }
 
     value_type m_dt;

@@ -90,18 +90,18 @@ int main( int argc , char** argv )
         char filename[255];
         sprintf( filename , "../data_N%d_dt%.2f/fourier_q%.5f.dat" , N , dt , q/N );
         std::ofstream res_file( filename );
-	if( !res_file.good() )
-	{
-	    std::cout << "unable to open file: " << filename << std::endl;
-	    exit(-1);
-	}
-
+        if( !res_file.good() )
+        {
+            std::cout << "unable to open file: " << filename << std::endl;
+            exit(-1);
+        }
+        
         std::clog << "Starting time evolution..." << std::endl;
 
         timeval elapsed_time_start , elapsed_time_end;
         gettimeofday(&elapsed_time_start , NULL);
 	
-	int n;
+        int n;
     
         for( n=0 ; n<steps ; ++n )
         {
@@ -112,10 +112,10 @@ int main( int argc , char** argv )
                 res_file << n*dt << '\t';
                 stepper.energies( s_x , s_y , s_z , energies );
                 res_file << thrust::reduce( energies.begin() , energies.end() ) << '\t';
-		const double fq = fourier.analyze( energies )/N;
+                const double fq = fourier.analyze( energies )/N;
                 res_file << fq << std::endl;
-		if( fq < 1.0 ) 
-		    break;
+                if( fq < 1.0 ) 
+                    break;
             }
         
         }
