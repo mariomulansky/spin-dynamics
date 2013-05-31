@@ -10,7 +10,6 @@
 #include "spin_stepper.hpp"
 #include "spin_stepper_cuda.hpp"
 #include "fourier_analyzer.hpp"
-#include "fourier_analyzer_cuda.hpp"
 #include "spin_initializer.hpp"
 
 typedef double value_type;
@@ -92,9 +91,8 @@ int main( int argc , char** argv )
     device_type energies2( N );
     
     spin_stepper< device_type , value_type > stepper( N , h_x , h_y , h_z );
-spin_stepper_cuda< device_type , value_type > stepper_cuda( N , h_x , h_y , h_z , 4 );
+    spin_stepper_cuda< device_type , value_type > stepper_cuda( N , h_x , h_y , h_z , 4 );
     fourier_analyzer< device_type , value_type > fourier( N , q );
-    fourier_analyzer_cuda< device_type , value_type > fourier_cuda( N , q , h_x , h_y , h_z , 4 );
     
     stepper.energies( s_x1 , s_y1 , s_z1 , energies );
     
@@ -130,7 +128,7 @@ spin_stepper_cuda< device_type , value_type > stepper_cuda( N , h_x , h_y , h_z 
         std::cout << '\t' <<  thrust::reduce( energies2.begin() , energies2.end() ) << std::endl;
 
         std::cout << "fourier: " << fourier.analyze( energies );
-        std::cout << '\t' << fourier_cuda.analyze( s_x2 , s_y2 , s_z2 ) << std::endl;
+        std::cout << '\t' << fourier.analyze( energies2 ) << std::endl;
 
         stepper.do_step( s_x1 , s_y1 , s_z1 , dt );
         stepper_cuda.do_step( s_x2 , s_y2 , s_z2 , dt );

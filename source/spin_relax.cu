@@ -24,6 +24,8 @@ double q = 2.0*M_PI * N/40;
 static const double beta0 = 0.0001;
 static const double nu = 0.5;
 
+const char* HOME = "/home/mmulansky/spin-dynamics/";
+
 double time_diff_in_ms( timeval &t1 , timeval &t2 )
 { return (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0 + 0.5; }
 
@@ -89,7 +91,7 @@ int main( int argc , char** argv )
         stepper.energies( s_x , s_y , s_z , energies );
     
         char filename[255];
-        sprintf( filename , "../data_N%d_dt%.2f/fourier_q%.5f.dat" , N , dt , q/N );
+        sprintf( filename , "%s/data_N%d_dt%.2f/fourier_q%.5f.dat" , HOME , N , dt , q/N );
         std::ofstream res_file( filename );
         if( !res_file.good() )
         {

@@ -2,7 +2,6 @@
 #define SPIN_STEPPER_CUDA_HPP
 
 #include <thrust/device_vector.h>
-#include "functors.hpp"
 
 __global__ void timestep_kernel_full( double* s_x , double* s_y , double* s_z , double* h_x , double* h_y , double* h_z , double dt )
 {
@@ -94,6 +93,15 @@ __global__ void timestep_kernel_half( double* s_x , double* s_y , double* s_z , 
 }
 
 
+__global__ void energy_kernel( double* s_x , double* s_y , double* s_z , double* h_x , double* h_y , double* h_z , double* e )
+{
+    const int i = 2*(threadIdx.x + blockIdx.x * blockDim.x);
+
+    e[i] = (h_x[i] + 0.5*s_x[i-1] + 0.5*s_x[i+1]) * s_x[i]
+        + (h_y[i] + 0.5*s_y[i-1] + 0.5*s_y[i+1]) * s_y[i]
+        + (h_z[i] + 0.5*s_z[i-1] + 0.5*s_z[i+1]) * s_z[i];
+}
+
 template< class VectorType , class ValueType >
 class spin_stepper_cuda
 {
@@ -145,43 +153,21 @@ public:
     void energies( vector_type &s_x , vector_type &s_y , vector_type &s_z ,
                    vector_type &energy ) 
     {
-        //calculate energies and store result in b_norm
-        thrust::for_each(
-            thrust::make_zip_iterator( thrust::make_tuple( 
-                 thrust::make_zip_iterator( thrust::make_tuple (
-                     s_x.begin() ,        // s_x[i-1]
-                     s_x.begin()+1 ,      // s_x[i]
-                     s_x.begin()+2 ) ) ,  // s_x[i+1]
-                 thrust::make_zip_iterator( thrust::make_tuple (
-                     s_y.begin() ,
-                     s_y.begin()+1 ,
-                     s_y.begin()+2 ) ),
-                 thrust::make_zip_iterator( thrust::make_tuple (
-                     s_z.begin() ,
-                     s_z.begin()+1 ,
-                     s_z.begin()+2 ) ),
-                 m_h_x.begin() ,
-                 m_h_y.begin() ,
-                 m_h_z.begin() ,
-                 energy.begin() ) ),
-            thrust::make_zip_iterator( thrust::make_tuple( 
-                 thrust::make_zip_iterator( thrust::make_tuple (
-                     s_x.end()-2 ,
-                     s_x.end()-1 ,
-                     s_x.end() ) ) ,
-                 thrust::make_zip_iterator( thrust::make_tuple (
-                     s_y.end()-2 ,
-                     s_y.end()-1 ,
-                     s_y.end() ) ),
-                 thrust::make_zip_iterator( thrust::make_tuple (
-                     s_z.end()-2 ,
-                     s_z.end()-1 ,
-                     s_z.end() ) ) ,
-                 m_h_x.end() ,
-                 m_h_y.end() ,
-                 m_h_z.end() ,
-                 energy.end() ) ) ,
-            energy_functor< value_type >() );
+
+        // elements 0 and N+1 are for constant boundary condition
+        value_type *s_x_ptr = thrust::raw_pointer_cast(s_x.data()+1);
+        value_type *s_y_ptr = thrust::raw_pointer_cast(s_y.data()+1);
+        value_type *s_z_ptr = thrust::raw_pointer_cast(s_z.data()+1);
+
+        value_type *h_x_ptr = thrust::raw_pointer_cast(m_h_x.data());
+        value_type *h_y_ptr = thrust::raw_pointer_cast(m_h_y.data());
+        value_type *h_z_ptr = thrust::raw_pointer_cast(m_h_z.data());
+
+        value_type *e_ptr = thrust::raw_pointer_cast(energy.data());
+
+        energy_kernel<<< m_N/m_block_size , m_block_size >>>
+            ( s_x_ptr , s_y_ptr , s_z_ptr , h_x_ptr , h_y_ptr , h_z_ptr , e_ptr );
+
     }
 
     int m_N;
