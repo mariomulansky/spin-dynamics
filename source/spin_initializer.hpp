@@ -14,9 +14,11 @@ class spin_initializer
 public:
     typedef ValueType value_type;
 
-    spin_initializer( value_type q , value_type nu )
+    spin_initializer( value_type q , value_type nu , int seed = 0 )
         : m_q( q ) , m_nu( nu )
-    {  }
+    {  
+        srand( seed );
+    }
 
     template< class VectorType >
     void init_normalized_random( VectorType &x , VectorType &y , VectorType &z )
@@ -46,13 +48,15 @@ public:
         const int N = h_x.size();
         // relax every second spin:
         std::ofstream bfile( "beta.dat" );
-            
-        for( int n=0 ; n<N ; n+=2 )
+        
+        for( int m=0 ; m<2*N ; ++m )
         {
-            // s have extra boundary condition spins
-            value_type b_x = h_x[n] + s_x[n] + s_x[n+2];
-            value_type b_y = h_y[n] + s_y[n] + s_y[n+2];
-            value_type b_z = h_z[n] + s_z[n] + s_z[n+2];
+            // choose random index
+            int n = rand() % N;
+            // s has index 0...N+1 with 0 and N+1 for fixed boundary conditions
+            value_type b_x = h_x[n+1] + s_x[n] + s_x[n+2];
+            value_type b_y = h_y[n+1] + s_y[n] + s_y[n+2];
+            value_type b_z = h_z[n+1] + s_z[n] + s_z[n+2];
             const value_type b = sqrt( b_x*b_x + b_y*b_y + b_z*b_z );
             b_x /= b; b_y /= b; b_z /= b;
             
@@ -102,22 +106,6 @@ public:
             s_y[n+1] = s(1);
             s_z[n+1] = s(2);
 
-            //std::clog << " = " << ( s_x[n+1]*b_x + s_y[n+1]*b_y + s_z[n+1]*b_z );
-
-            //std::clog << " (" << s_x[n+1]*s_x[n+1] + s_y[n+1]*s_y[n+1] + s_z[n+1]*s_z[n+1] << ")" << std::endl;
-            /*
-            // what exactly should be lambda for the exp distr
-            boost::exponential_distribution< value_type > exp_dist( b*beta );
-            boost::variate_generator< boost::mt19937 & ,
-                                      boost::exponential_distribution< value_type > > var_exp( m_rng , exp_dist );
-            value_type cos_theta = var_exp( );
-
-            
-            // how to get a vector not perpendicular to b ?
-            s_x[n+1] = cos_theta*b_x;
-            s_y[n+1] = cos_theta*b_y;
-            s_z[n+1] = cos_theta*b_z;
-            */
         }
     }
 

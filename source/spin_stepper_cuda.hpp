@@ -2,6 +2,7 @@
 #define SPIN_STEPPER_CUDA_HPP
 
 #include <thrust/device_vector.h>
+#include "functors.hpp"
 
 __global__ void timestep_kernel_full( double* s_x , double* s_y , double* s_z , double* h_x , double* h_y , double* h_z , double dt )
 {

@@ -7,7 +7,7 @@
 
 #include <thrust/device_vector.h>
 
-#include "spin_stepper.hpp"
+#include "spin_stepper_cuda.hpp"
 #include "fourier_analyzer.hpp"
 #include "spin_initializer.hpp"
 
@@ -16,7 +16,8 @@ typedef thrust::device_vector< value_type > device_type;
 
 typedef std::vector< value_type > host_type;
 
-static const int N = 10000000;
+static const int N = 1000000;
+static const int block_size = 64;
 static const int steps = 50001;
 static const double dt = 0.1;
 double q = 2.0*M_PI * N/40;
@@ -82,7 +83,7 @@ int main( int argc , char** argv )
     
         device_type energies( N );
     
-        spin_stepper< device_type , value_type > stepper( N , h_x , h_y , h_z );
+        spin_stepper_cuda< device_type , value_type > stepper( N , h_x , h_y , h_z , block_size );
         fourier_analyzer< device_type , value_type > fourier( N , q );
     
         stepper.energies( s_x , s_y , s_z , energies );

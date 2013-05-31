@@ -9,15 +9,15 @@
 
 __global__ void fourier_kernel( const double* s_x , const double* s_y , const double* s_z , 
                                 double* h_x , double* h_y , double* h_z ,
-                                double* co , double* si , float* res_r , float* res_i )
+                                double* co , double* si , double* res_r , double* res_i )
 {
-    extern __shared__ float shared[];
+    extern __shared__ double shared[];
 
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
     const int BLOCK_SIZE = blockDim.x;
 
-    float *real = &shared[0];
-    float *imag = &shared[BLOCK_SIZE];
+    double *real = &shared[0];
+    double *imag = &shared[2*BLOCK_SIZE];
 
     // calculate local energy
     const double e = (h_x[i] + 0.5*s_x[i-1] + 0.5*s_x[i+1]) * s_x[i]
@@ -31,27 +31,36 @@ __global__ void fourier_kernel( const double* s_x , const double* s_y , const do
     // make sure calculation is ready
     __syncthreads();
 
-    // add up things
-    if( 0 == threadIdx.x )
+    int nTotalThreads = BLOCK_SIZE;
+    int thread2;
+
+    // now do the reduction using a binary tree
+    while(nTotalThreads > 1)
     {
-        float sum_real = 0.0;
-        for( int n=0 ; n<BLOCK_SIZE ; n++ )
+        int halfPoint = (nTotalThreads >> 1);	// divide by two
+        // the first half of the threads will sum real
+        // the second half imag
+        thread2 = threadIdx.x + halfPoint;
+        if (threadIdx.x < halfPoint)
         {
-            sum_real += (float) real[n];
+            real[threadIdx.x] += real[thread2];
+        } else {
+            imag[threadIdx.x] += imag[thread2];
         }
-        atomicAdd( res_r , sum_real );
+        __syncthreads();
+        
+        // Reducing the binary tree size by two:
+        nTotalThreads = halfPoint;
     }
-    if( 1 == threadIdx.x )
+
+    // finally store the results
+    if( threadIdx.x == 0 )
     {
-        float sum_imag = 0.0;
-        for( int n=0 ; n<BLOCK_SIZE ; n++ )
-        {
-            sum_imag += (float) imag[n];
-        }
-        atomicAdd( res_i , sum_imag );
+        res_r[blockIdx.x] = real[0];
+        res_i[blockIdx.x] = imag[0];
     }
 }
-
+    
 template< class VectorType , class ValueType >
 class fourier_analyzer_cuda
 {
@@ -80,14 +89,21 @@ public:
         }
         thrust::copy( co.begin() , co.end() , m_co.begin() );
         thrust::copy( si.begin() , si.end() , m_si.begin() );
+
+        cudaMalloc( (void**) &m_res_r_ptr , sizeof(value_type) );
+        cudaMalloc( (void**) &m_res_i_ptr , sizeof(value_type) );
     }
 
     value_type analyze( const vector_type &s_x , const vector_type &s_y , const vector_type &s_z )
     {
+        value_type real = 0.0;
+        value_type imag = 0.0;
 
-        float *res_r_ptr , *res_i_ptr;
-        cudaMalloc( (void**) &res_r_ptr , sizeof(float) );
-        cudaMalloc( (void**) &res_i_ptr , sizeof(float) );
+        // initialize result values to 0
+        cudaMemcpy( m_res_r_ptr , &real_f , sizeof(value_type) , cudaMemcpyHostToDevice );
+        cudaMemcpy( m_res_i_ptr , &imag_f , sizeof(value_type) , cudaMemcpyHostToDevice );
+
+        //std::cout << "cudaMalloc ready" << std::endl;
 
         //leave out boundary values, actual data starts at index 1
         const value_type *s_x_ptr = thrust::raw_pointer_cast(s_x.data()+1);
@@ -102,17 +118,28 @@ public:
         value_type *si_ptr = thrust::raw_pointer_cast(m_si.data());
 
         // the fourier component is calculated as float
-        int shared_mem_size = 2*m_block_size*sizeof(float);
+        int shared_mem_size = m_block_size*sizeof(value_type);
+
+        //std::cout << "starting kernel..." << std::endl;
 
         fourier_kernel<<< m_N/m_block_size , m_block_size , shared_mem_size >>>
+            //fourier_kernel<<< m_N/m_block_size , m_block_size >>>
             ( s_x_ptr , s_y_ptr , s_z_ptr , 
               h_x_ptr , h_y_ptr , h_z_ptr , 
-              co_ptr , si_ptr , res_r_ptr , res_i_ptr  );
-        
-        const value_type real = static_cast<value_type>( *res_r_ptr );
-        const value_type imag = static_cast<value_type>( *res_i_ptr );
+              co_ptr , si_ptr , m_res_r_ptr , m_res_i_ptr );
 
+        cudaMemcpy( &real , m_res_r_ptr , sizeof(value_type) , cudaMemcpyDeviceToHost );
+        cudaMemcpy( &imag , m_res_i_ptr , sizeof(value_type) , cudaMemcpyDeviceToHost );
+
+        //std::cout << "copy finished..." << std::endl;
+        
         return real*real + imag*imag;
+    }
+
+    ~fourier_analyzer_cuda()
+    {
+        cudaFree( m_res_r_ptr );
+        cudaFree( m_res_i_ptr );
     }
 
 private:
@@ -123,7 +150,7 @@ private:
     vector_type &m_h_y;
     vector_type &m_h_z; 
     int m_block_size;
-
+    value_type *m_res_r_ptr , *m_res_i_ptr;
 };
 
 #endif

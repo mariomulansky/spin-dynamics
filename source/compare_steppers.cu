@@ -108,7 +108,6 @@ spin_stepper_cuda< device_type , value_type > stepper_cuda( N , h_x , h_y , h_z 
     std::ofstream res_file1( filename );
     sprintf( filename , "result2_N%d.dat" , N );
     std::ofstream res_file2( filename );
-
     std::clog << "Starting time evolution..." << std::endl;
 
     timeval elapsed_time_start , elapsed_time_end;
